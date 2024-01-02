@@ -16,11 +16,6 @@ const decimals = 18; // Number of decimals for the token
 // Define the percentages for selling
 const sellPercentage = 0.70; // 40% for selling
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
 // Function to make POST requests with Axios
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
 async function makePostRequest(url, postData, headers) {
@@ -62,14 +57,14 @@ async function sendTokens(senderSeed, recipientAddress, amount) {
 
         return new Promise((resolve, reject) => {
             transfer.signAndSend(sender, ({ status, events, dispatchError }) => {
-                console.log(`Transaction status: ${status.type}`);
+                console.debug(`Transaction status: ${status.type}`);
 
                 if (status.isInBlock) {
-                    console.log(`Transaction included at blockHash ${status.asInBlock}`);
+                    console.debug(`Transaction included at blockHash ${status.asInBlock}`);
                 } else if (status.isFinalized) {
-                    console.log(`Transaction finalized at blockHash ${status.asFinalized}`);
+                    console.debug(`Transaction finalized at blockHash ${status.asFinalized}`);
                     events.forEach(({ event: { data, method, section } }) => {
-                        console.log(`\t'${section}.${method}': ${data}`);
+                        console.debug(`\t'${section}.${method}': ${data}`);
                     });
                     resolve(status.asFinalized.toString());
                 } else if (dispatchError) {
@@ -77,10 +72,10 @@ async function sendTokens(senderSeed, recipientAddress, amount) {
                         // for module errors, we have the section indexed, lookup
                         const decoded = api.registry.findMetaError(dispatchError.asModule);
                         const { documentation, name, section } = decoded;
-                        console.log(`${section}.${name}: ${documentation.join(' ')}`);
+                        console.error(`${section}.${name}: ${documentation.join(' ')}`);
                     } else {
                         // Other, CannotLookup, BadOrigin, no extra info
-                        console.log(dispatchError.toString());
+                        console.error(dispatchError.toString());
                     }
                     reject(dispatchError.toString());
                 }
@@ -105,10 +100,9 @@ async function stakeExtraTokens(senderSeed, amount) {
 
         const bondExtra = api.tx.staking.bondExtra(amountBigInt);
         const hash = await bondExtra.signAndSend(sender);
-        console.log('Additional staking successful with hash:', hash.toHex());
+        console.info('Additional staking successful with hash:', hash.toHex());
     } catch (error) {
         console.error('Failed to stake extra tokens:', error.message);
-        // Additional error handling as needed
     }
 }
 
@@ -121,18 +115,18 @@ async function processWallet(wallet) {
         const tokensToSell = balance * sellPercentage;
         const tokensToStake = balance - tokensToSell;
 
-        console.log(`${wallet.name} current balance is: ${balance / 10 ** 18} ENJ`);
-        console.log(`${wallet.name} Tokens to Sell: ${tokensToSell / 10 ** decimals} ENJ`);
-        console.log(`${wallet.name} Tokens to Stake: ${tokensToStake / 10 ** decimals} ENJ`);
+        console.info(`${wallet.name} current balance is: ${balance / 10 ** 18} ENJ`);
+        console.info(`${wallet.name} Tokens to Sell: ${tokensToSell / 10 ** decimals} ENJ`);
+        console.info(`${wallet.name} Tokens to Stake: ${tokensToStake / 10 ** decimals} ENJ`);
 
         if (tokensToSell > (1 * 10 ** 18)) {
             await sendTokens(wallet.seed, recipientAddress, tokensToSell)
-                .then(blockHash => console.log(`Transaction finalized in block: ${blockHash}`))
+                .then(blockHash => console.info(`Transaction finalized in block: ${blockHash}`))
                 .catch(error => console.error(`Error in transaction: ${error}`));
 
-            await stakeExtraTokens(wallet.seed, tokensToStake); // Define amountToStake as needed
+            await stakeExtraTokens(wallet.seed, tokensToStake);
         } else {
-            console.log(`Not enought tokens available to process.`)
+            console.error(`Not enought tokens available to process.`)
         }
     } catch (error) {
         console.error(`Error processing ${wallet.name}:`, error.message);
