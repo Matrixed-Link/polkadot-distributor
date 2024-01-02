@@ -1,0 +1,12 @@
+{
+    "recipientAddress": "your_recipient_address_here",
+    "minimumBalance": 0.5,
+    "minimumThreshold": 1,
+    "rpcUrl": "your_rpc_url_here",
+    "decimals": 18,
+    "sellPercentage": 0.70,
+    "wallets": {
+        "validator1": "seed_for_validator_1",
+        "validator2": "seed_for_validator_2"
+    }
+}
