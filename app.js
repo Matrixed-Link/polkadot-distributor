@@ -2,6 +2,7 @@ const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
 const axios = require('axios');
 const config = require('./config.json');
+const Telegram = require('telegram-notify'); // Telegram alerter
 
 // Use values from config
 const wallets = Object.entries(config.wallets).map(([name, seed]) => ({ name, seed }));
@@ -15,6 +16,12 @@ const sellPercentage = config.sellPercentage;
 // Set useragent for scrape request
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
 
+// Function to send telegram alert
+const sendTgAlert = async (message) => {
+    const notify = new Telegram({token:config.telegram_key, chatId:config.telegram_id});
+    await notify.send(message);
+}
+
 // Function to do post request
 async function makePostRequest(url, postData, headers) {
     try {
@@ -22,6 +29,7 @@ async function makePostRequest(url, postData, headers) {
         return response.data;
     } catch (error) {
         console.error(`Error in POST request to ${url}:`, error.message);
+        sendTgAlert('Error in post request.')
         return null;
     }
 }
@@ -80,6 +88,7 @@ async function sendTokens(senderSeed, recipientAddress, amount) {
         });
     } catch (error) {
         console.error('Failed to send tokens:', error.message);
+        sendTgAlert(`Failed to send tokens: ${error.message}`)
         throw error;
     }
 }
@@ -96,6 +105,7 @@ async function stakeExtraTokens(senderSeed, amount) {
         console.info('Additional staking successful with hash:', hash.toHex());
     } catch (error) {
         console.error('Failed to stake extra tokens:', error.message);
+        sendTgAlert(`Failed to stake extra tokens: ${error.message}`)
     }
 }
 
@@ -118,11 +128,14 @@ async function processWallet(wallet) {
                 .catch(error => console.error(`Error in transaction: ${error}`));
 
             await stakeExtraTokens(wallet.seed, tokensToStake);
+            sendTgAlert(`Completed run.`)
         } else {
             console.error(`Not enough tokens available to process.`);
+            sendTgAlert(`Not enough tokens available to process.`)
         }
     } catch (error) {
-        console.error(`Error processing ${wallet.name}:`, error.message);
+        console.error(``, error.message);
+        sendTgAlert(`Error processing ${wallet.name}: ${error.message}`)
     }
 }
 
@@ -134,4 +147,5 @@ async function main() {
     process.exit(0);
 }
 
+sendTgAlert('Starting Enjin distribution and stake.')
 main().catch(console.error);
