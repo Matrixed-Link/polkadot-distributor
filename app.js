@@ -128,7 +128,6 @@ async function processWallet(wallet) {
                 .catch(error => console.error(`Error in transaction: ${error}`));
 
             await stakeExtraTokens(wallet.seed, tokensToStake);
-            sendTgAlert(`Completed run.`)
         } else {
             console.error(`Not enough tokens available to process.`);
             sendTgAlert(`Not enough tokens available to process.`)
@@ -144,6 +143,7 @@ async function main() {
     for (const wallet of wallets) {
         await processWallet(wallet);
     }
+    sendTgAlert(`Completed run.`)
     process.exit(0);
 }
 
