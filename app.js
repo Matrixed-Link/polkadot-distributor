@@ -13,6 +13,10 @@ const rpcUrl = config.rpcUrl;
 const decimals = config.decimals;
 const sellPercentage = config.sellPercentage;
 
+// Counter values
+let totalStaked = 0
+let totalSell = 0
+
 // Set useragent for scrape request
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
 
@@ -73,6 +77,7 @@ async function sendTokens(senderSeed, recipientAddress, amount) {
                     events.forEach(({ event: { data, method, section } }) => {
                         console.debug(`\t'${section}.${method}': ${data}`);
                     });
+                    totalSell += amount
                     resolve(status.asFinalized.toString());
                 } else if (dispatchError) {
                     if (dispatchError.isModule) {
@@ -102,6 +107,7 @@ async function stakeExtraTokens(senderSeed, amount) {
 
         const bondExtra = api.tx.staking.bondExtra(amountBigInt);
         const hash = await bondExtra.signAndSend(sender);
+        totalStaked += amount
         console.info('Additional staking successful with hash:', hash.toHex());
     } catch (error) {
         console.error('Failed to stake extra tokens:', error.message);
@@ -143,7 +149,7 @@ async function main() {
     for (const wallet of wallets) {
         await processWallet(wallet);
     }
-    sendTgAlert(`Completed run.`)
+    sendTgAlert(`Completed run. Staked: ${totalStaked/ 10 ** decimals} ENJ | Send: ${totalSell/ 10 ** decimals} ENJ`)
     process.exit(0);
 }
 
